@@ -1,39 +1,32 @@
 import pika
 
-connection = pika.BlockingConnection(pika.ConnectionParameters(host="localhost"))
-channel = connection.channel()
+class Controller:
+	def __init__(self, host='localhost'):
+		connection = pika.BlockingConnection(pika.ConnectionParameters(
+		host='localhost'))
 
-channel.queue_declare(queue="hello")
+		self.channel = connection.channel()
 
-print 'Waiting...'
+		self.channel.queue_declare(queue='keys')
+		self.channel.queue_declare(queue='values')
 
-def callback(ch, method, properties, body):
-	print 'received: ' + body
+	def on_receive_keys(self, ch, method, props, body):
+		print 'received keys:' + body
 
-channel.basic_qos(prefetch_count=1)
+		ch.basic_publish(exchange='',
+							routing_key=props.reply_to,
+							properties=pika.BasicProperties(correlation_id = \
+													props.correlation_id),
+							body='keys ok')
+		ch.basic_ack(delivery_tag = method.delivery_tag)
 
-channel.basic_consume(callback, queue='hello', no_ack=True)
+	def on_receive_values(self, ch, method, props, body):
+		print 'received values:' + body
 
+	def start(self):
+		self.channel.basic_consume(self.on_receive_keys, queue='keys')
+		self.channel.basic_consume(self.on_receive_values, queue='values')
 
+		print " [x] Awaiting for keys and values"
 
-channel.queue_declare(queue="listener1")
-
-print 'listener 1 channel declared queue'
-
-def callback2(ch, method, properties, body):
-	print 'listener1 received: ' + body
-
-channel.basic_consume(callback2, queue='listener1', no_ack=True)
-
-
-
-print 'listener 2 channel declared queue'
-
-def callback3(ch, method, properties, body):
-	print 'listener2 received: ' + body
-
-channel.basic_consume(callback3, queue='listener2', no_ack=True)
-
-
-
-channel.start_consuming()
+		self.channel.start_consuming()
