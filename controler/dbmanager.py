@@ -7,26 +7,30 @@ class DBManager:
 	def __init__(self):
 		self.engine = create_engine('sqlite:///:memory:', echo=True)
 		self.metadata = MetaData()
+		self.metadata.bind=self.engine
 		self.conn = self.engine.connect()
 
 
 	def create_table(self, name, table):
 		"""creates a table with the name sepcified by name parameter and the column specified in the dict table_name
 			table will have the column names as keys and the column types as values"""
+		try:
+			t = Table(name, self.metadata, autoload=True)
 
-		code = "t = Table('" + name + "', self.metadata, Column('id', Integer, primary_key=True)"
-		columns = ''
-		for k,v in table.items():
-			col = "Column('" + k + "'," + v + ")"
-			columns += "," + col 
+		except Exception:
+			code = "t = Table('" + name + "', self.metadata, Column('id', Integer, primary_key=True)"
+			columns = ''
+			for k,v in table.items():
+				col = "Column('" + k + "'," + v + ")"
+				columns += "," + col 
 
-		code += columns + ")"
-	
-		exec code
+			code += columns + ")"
+		
+			exec code
 
-		self.indexes[name] = 0
+			self.indexes[name] = 0
 
-		t.create(self.engine, checkfirst=True)
+			t.create(self.engine, checkfirst=True)
 
 
 	def insert_into_table(self, table_name, table_values):
@@ -54,3 +58,10 @@ class DBManager:
 		result = self.conn.execute(sel)
 
 		return result
+
+	def select_from_table_lasts(self, table_name, no):
+		"""returns last no entries in the table table_name"""
+		table = Table(table_name, self.metadata)
+		query = table.select().order_by(table.c.id.desc()).limit(no)
+
+		return str(reversed(self.conn.execute(query).fetchall()))
