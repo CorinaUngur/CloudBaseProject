@@ -1,8 +1,12 @@
 import pika
 import uuid
+import json
 
 
-class Agent:
+class Agent():
+
+	table='[{"name":"String", "val":"Integer"}]'
+
 	def __init__(self, host="localhost"):
 		self.host = host
 		self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=self.host))
@@ -14,23 +18,22 @@ class Agent:
 		self.channel.queue_declare(queue='values')
 		self.channel.queue_declare(queue='keys')
 
-		self.channel.basic_consume(self.on_key_response, no_ack=True, queue=self.callback_queue)
+		self.channel.basic_consume(self.on_register_response, no_ack=True, queue=self.callback_queue)
 
-	def set_info(self, dictt={}):
-		self.keys = ''
-		self.values = ''
-		for k, v in dictt.iteritems():
-			self.keys += str(k) + ' '
-			self.values += str(v) + ' '
+		self.__register__()
 
 
-	def on_key_response(self, ch, method, props, body):
-		self.response = 'received'
-		print 'response received'
-		self.channel.basic_publish(exchange='', routing_key='values', body=self.values)
+	def on_register_response(self, ch, method, props, body):
+		if body=='True':
+			print "Agent registered successfullyy"
+		else:
+			print "There's been a problem with the table configuration"
+
+		self.response = "received"
 
 
-	def send_keys(self):
+	def __register__(self):
+
 		self.response = None
 
 		self.corr_id = str(uuid.uuid4())
@@ -39,11 +42,20 @@ class Agent:
 									properties=pika.BasicProperties(
 									reply_to = self.callback_queue,
 									correlation_id = self.corr_id,
+									content_type="application/json"
 									),
-									body=self.keys)
-		print '# Sent keys: ' + self.keys
+									body=self.table)
+		print "keys sent"
 		while self.response is None:
 			self.connection.process_data_events()
+
+		print "end of registration"
+
+	def send_values(self, values):
+		self.channel.basic_publish(exchange='',
+					 routing_key='values', 
+					 properties=pika.BasicProperties(content_type="application/json"), 
+					 body=json.dumps(values))
 
 	def close_connection(self):
 		self.connection.close()
