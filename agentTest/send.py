@@ -3,14 +3,12 @@ import uuid
 import json
 
 
-class Agent():
+class Agent(object):
+	table = []
+	table_name = ''
 
-	table=["Agent2", {"name":"String", "val":"Integer"}]
-	table_name = "Agent2"
-
-	def __init__(self, host="localhost"):
-		self.host = host
-		self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=self.host))
+	def __init__(self):
+		self.connection = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
 		self.channel = self.connection.channel()
 
  		self.callback_queue_reg = self.channel.queue_declare(exclusive=True).method.queue
@@ -23,7 +21,7 @@ class Agent():
 		self.channel.basic_consume(self.on_register_response, no_ack=True, queue=self.callback_queue_reg)
 		self.channel.basic_consume(self.on_statistics_response, no_ack=True, queue=self.callback_queue_sts)
 
-		self.__register__()
+
 
 
 	def on_register_response(self, ch, method, props, body):
@@ -91,4 +89,7 @@ class Agent():
 	def on_statistics_response(self, ch, method, props, body):
 		print body
 		self.response = 'received'
+
+	def __set_table__(self, t):
+		self.table = t
 
