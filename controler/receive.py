@@ -16,6 +16,8 @@ class Controller():
 		self.manager=dbmanager.DBManager()
 
 	def on_receive_keys(self, ch, method, props, body):
+		"""receives the keys which represent the table columns and the table name 
+		tells the db manager to create the specific table"""
 		print "keys received: " + body
 		ch.basic_ack(delivery_tag = method.delivery_tag)
 		table_name = json.loads(body)[0]
@@ -34,6 +36,8 @@ class Controller():
 
 
 	def on_receive_values(self, ch, method, props, body):
+		"""receives a json of the type [table_name, values]
+			tells the db manager to insert into the table table_name the values"""
 		print body
 		table_name = json.loads(body)[0]
 		values = json.loads(body)[1]
@@ -47,6 +51,8 @@ class Controller():
 			print row
 
 	def on_statistics_request(self, ch, method, props, body):
+		"""receives a table_name and a number and requests from the db manager the last entries specific to the number
+			sends the result back to the client"""
 		table_name = json.loads(body)[0]
 		no = int(json.loads(body)[1])
 		result = self.manager.select_from_table_lasts(table_name, no)
@@ -65,6 +71,7 @@ class Controller():
 
 
 	def start(self):
+		"""starts the consuming on the queues"""
 		self.channel.basic_consume(self.on_receive_keys, queue='keys')
 		self.channel.basic_consume(self.on_receive_values, queue='values')
 		self.channel.basic_consume(self.on_statistics_request, queue='statistics')

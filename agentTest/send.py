@@ -5,7 +5,7 @@ import json
 
 class Agent():
 
-	table='["Agent2", {"name":"String", "val":"Integer"}]'
+	table=["Agent2", {"name":"String", "val":"Integer"}]
 	table_name = "Agent2"
 
 	def __init__(self, host="localhost"):
@@ -36,7 +36,8 @@ class Agent():
 
 
 	def __register__(self):
-
+		"""sends to the server a json with the table name and the columns names and types, 
+		the server tries to create the specific table and sends back a acknowledgement "True" if the table was created successfully"""
 		self.response = None
 
 		corr_id = str(uuid.uuid4())
@@ -48,7 +49,7 @@ class Agent():
 									content_type="application/json",
 									delivery_mode = 1
 									),
-									body=self.table)
+									body=json.dumps(self.table))
 		print "keys sent"
 		while self.response is None:
 			self.connection.process_data_events()
@@ -56,6 +57,7 @@ class Agent():
 		print "end of registration"
 
 	def send_values(self, values):
+		"""sends a json with the values and the table name to the server"""
 		s = [self.table_name, values ]
 		self.channel.basic_publish(exchange='',
 					 routing_key='values', 
@@ -63,6 +65,7 @@ class Agent():
 					 body=json.dumps(s))
 
 	def get_last_entries(self, no):
+		"""sends a request for last no number of rows in its table"""
 		s = [self.table_name , no]
 		self.response = None
 
