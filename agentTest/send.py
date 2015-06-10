@@ -15,10 +15,10 @@ class Agent():
 
  		self.callback_queue_reg = self.channel.queue_declare(exclusive=True).method.queue
  		self.callback_queue_sts = self.channel.queue_declare('statistics_response').method.queue
-		
-		self.channel.queue_declare(queue='values')
-		self.channel.queue_declare(queue='keys')
-		self.channel.queue_declare(queue='statistics')
+
+		self.channel.queue_declare(queue='keys', durable=False)
+		self.channel.queue_declare(queue='values', durable=False)
+		self.channel.queue_declare(queue='statistics', durable=False)
 
 		self.channel.basic_consume(self.on_register_response, no_ack=True, queue=self.callback_queue_reg)
 		self.channel.basic_consume(self.on_statistics_response, no_ack=True, queue=self.callback_queue_sts)
@@ -45,7 +45,8 @@ class Agent():
 									properties=pika.BasicProperties(
 									reply_to = self.callback_queue_reg,
 									correlation_id = corr_id,
-									content_type="application/json"
+									content_type="application/json",
+									delivery_mode = 1
 									),
 									body=self.table)
 		print "keys sent"
@@ -55,14 +56,14 @@ class Agent():
 		print "end of registration"
 
 	def send_values(self, values):
-		s = '["' + self.table_name + '", ' + str(values) + ']'
+		s = [self.table_name, values ]
 		self.channel.basic_publish(exchange='',
 					 routing_key='values', 
-					 properties=pika.BasicProperties(content_type="application/json"), 
-					 body=s)
+					 properties=pika.BasicProperties(content_type="application/json", delivery_mode = 1), 
+					 body=json.dumps(s))
 
 	def get_last_entries(self, no):
-		s = '["' + table_name + '", ' + str(no) + ']'
+		s = [self.table_name , no]
 		self.response = None
 
 		corr_id = str(uuid.uuid4())
@@ -71,7 +72,8 @@ class Agent():
 									properties=pika.BasicProperties(
 									reply_to = self.callback_queue_sts,
 									correlation_id = corr_id,
-									content_type="application/json"
+									content_type="application/json",
+									delivery_mode = 1
 									),
 									body=json.dumps(s))
 

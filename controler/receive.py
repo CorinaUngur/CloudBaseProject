@@ -9,9 +9,9 @@ class Controller():
 
 		self.channel = connection.channel()
 
-		self.channel.queue_declare(queue='keys')
-		self.channel.queue_declare(queue='values')
-		self.channel.queue_declare(queue='statistics')
+		self.channel.queue_declare(queue='keys', durable=False)
+		self.channel.queue_declare(queue='values', durable=False)
+		self.channel.queue_declare(queue='statistics', durable=False)
 
 		self.manager=dbmanager.DBManager()
 
@@ -26,7 +26,8 @@ class Controller():
 		ch.basic_publish(exchange='',
 							routing_key=props.reply_to,
 							properties=pika.BasicProperties(correlation_id = \
-													props.correlation_id),
+													props.correlation_id,
+													delivery_mode = 1),
 							body='True')
 
 		print "Acknowledgement sent to ctrl"
@@ -36,7 +37,8 @@ class Controller():
 		print body
 		table_name = json.loads(body)[0]
 		values = json.loads(body)[1]
-
+		print 'table name: ' + str(table_name)
+		print 'values: ' + str(values)
 		self.manager.insert_into_table(table_name, values)
 		result = self.manager.select_from_table(table_name)
 
@@ -57,7 +59,8 @@ class Controller():
 		ch.basic_publish(exchange='',
 							routing_key=props.reply_to,
 							properties=pika.BasicProperties(correlation_id = \
-													props.correlation_id),
+													props.correlation_id,
+													delivery_mode = 1),
 							body=s)
 
 

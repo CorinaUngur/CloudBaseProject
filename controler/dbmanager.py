@@ -16,6 +16,7 @@ class DBManager:
 			table will have the column names as keys and the column types as values"""
 		try:
 			t = Table(name, self.metadata, autoload=True)
+			self.indexes[name] = t.columns['id']
 
 		except Exception:
 			code = "t = Table('" + name + "', self.metadata, Column('id', Integer, primary_key=True)"
@@ -45,10 +46,10 @@ class DBManager:
 	def __get_next_index__(self, table_name):
 		""" returns the next id for a new item to be added in the table table_name"""
 
-		index = self.indexes.get(table_name)
+		index = self.indexes[table_name]
 		index+=1
 		self.indexes[table_name] = index
-
+		
 		return index
 
 	def select_from_table(self, table_name):
@@ -64,4 +65,4 @@ class DBManager:
 		table = Table(table_name, self.metadata)
 		query = table.select().order_by(table.c.id.desc()).limit(no)
 
-		return str(reversed(self.conn.execute(query).fetchall()))
+		return reversed(self.conn.execute(query).fetchall())
