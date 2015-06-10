@@ -15,6 +15,11 @@ class PeriodicAgent(Agent):
 		
 		self.__register__()
 
+	def __start_process__(self, values):
+		while(True):
+			self.send_values(values)
+			time.sleep(self.seconds_to_sleep)
+
 	def set_interval(self, seconds):
 		self.seconds_to_sleep = seconds
 
